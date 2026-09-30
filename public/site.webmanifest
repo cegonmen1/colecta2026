@@ -1,0 +1,14 @@
+{
+  "name": "LLAMANDO 2026 · Colecta Navideña Vida Máxima",
+  "short_name": "LLAMANDO",
+  "lang": "es-MX",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#0a120e",
+  "theme_color": "#0a120e",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
