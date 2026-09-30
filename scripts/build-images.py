@@ -159,7 +159,7 @@ def og_image():
     s = "COLECTA NAVIDEÑA 2026"
     sw = tracked_width(d, s, sub, 6)
     tracked(d, ((W - sw) / 2, 212), s, sub, gold, 6)
-    info = "DOMINGO 13 DE DICIEMBRE · 5:30 PM · C.C. SEDENA (AIFA)"
+    info = "DOMINGO 13 DE DICIEMBRE · 5:30 PM · C.C. SEDENA (SANTA LUCÍA)"
     iw = tracked_width(d, info, mont, 3)
     tracked(d, ((W - iw) / 2, H - 78), info, mont, cream, 3)
     img.convert("RGB").save(PUBLIC / "og-image.jpg", "JPEG", quality=84, optimize=True, progressive=True)
