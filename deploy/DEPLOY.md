@@ -1,51 +1,51 @@
 # Despliegue · colecta.vidamas.uno
 
-Servidor: `217.77.3.87` (nginx 1.24 / Ubuntu). DNS ya resuelve. Hoy el subdominio cae en el
-server block por defecto, que redirige a `softwarecubo.com`; por eso hace falta un bloque propio.
+| | |
+|---|---|
+| Servidor | `217.77.3.87` · Ubuntu 24.04 · nginx 1.24 (compartido con softwarecubo.com) |
+| Acceso | `root` por llave SSH (`~/.ssh/id_rsa`, cargada en el agente con `ssh-add --apple-use-keychain`) |
+| Docroot | `/var/www/colecta.vidamas.uno/html` (dueño `www-data`) |
+| nginx | `/etc/nginx/sites-available/colecta.vidamas.uno` = `deploy/nginx-colecta.vidamas.uno.conf` |
+| Certificado | Let's Encrypt, `certbot certonly --webroot`, email `cegonmen@gmail.com` |
+| Renovación | `certbot.timer` (automática) + `renew_hook = systemctl reload nginx` |
 
-## 1. Build local
-
-```bash
-pnpm install --frozen-lockfile
-pnpm build            # genera dist/
-pnpm preview          # opcional: http://localhost:4173
-```
-
-`pnpm images` solo si cambias fotos o fuentes en `assets/` o `fonts/` (requiere avifenc, cwebp,
-rsvg-convert y Pillow/fonttools).
-
-## 2. Subir archivos
+## Publicar cambios
 
 ```bash
-ssh <usuario>@217.77.3.87 'sudo mkdir -p /var/www/colecta.vidamas.uno && sudo chown $USER /var/www/colecta.vidamas.uno'
-rsync -avz --delete dist/ <usuario>@217.77.3.87:/var/www/colecta.vidamas.uno/
+pnpm deploy:prod
 ```
 
-## 3. nginx
+Hace install en frío → build → audit → `rsync --delete` de `dist/` → verifica que responda 200.
+
+## Cambiar la config de nginx
+
+1. Editar `deploy/nginx-colecta.vidamas.uno.conf` en el repo.
+2. Subir y recargar solo si `nginx -t` pasa (si falla, se restaura la anterior):
 
 ```bash
-scp deploy/nginx-colecta.vidamas.uno.conf <usuario>@217.77.3.87:/tmp/
-ssh <usuario>@217.77.3.87
-sudo mv /tmp/nginx-colecta.vidamas.uno.conf /etc/nginx/sites-available/colecta.vidamas.uno
-sudo ln -s /etc/nginx/sites-available/colecta.vidamas.uno /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
+scp deploy/nginx-colecta.vidamas.uno.conf root@217.77.3.87:/etc/nginx/sites-available/colecta.vidamas.uno.new
+ssh root@217.77.3.87 'cd /etc/nginx/sites-available && cp colecta.vidamas.uno colecta.vidamas.uno.bak && mv colecta.vidamas.uno.new colecta.vidamas.uno && (nginx -t && systemctl reload nginx && rm colecta.vidamas.uno.bak) || (mv colecta.vidamas.uno.bak colecta.vidamas.uno && echo ROLLBACK)'
 ```
 
-## 4. HTTPS (obligatorio para SEO y Lighthouse)
+El bloque :80 debe conservar `location ^~ /.well-known/acme-challenge/`, que usa la renovación por webroot.
+
+## Certificado
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx     # si no está
-sudo certbot --nginx -d colecta.vidamas.uno --redirect
+ssh root@217.77.3.87 'certbot certificates --cert-name colecta.vidamas.uno'
+ssh root@217.77.3.87 'certbot renew --cert-name colecta.vidamas.uno --dry-run'
 ```
 
-Certbot agrega el bloque 443 y el redirect 80→443. Después, dentro del bloque 443, se puede
-activar HTTP/2 (`http2 on;`) y HSTS:
-`add_header Strict-Transport-Security "max-age=31536000" always;`
-
-## 5. Post-deploy
+## Post-deploy (una sola vez)
 
 - PageSpeed Insights: https://pagespeed.web.dev/analysis?url=https://colecta.vidamas.uno/
 - Rich Results Test (Event): https://search.google.com/test/rich-results?url=https://colecta.vidamas.uno/
 - Google Search Console: dar de alta `colecta.vidamas.uno`, enviar `sitemap.xml`, solicitar indexación.
-- Previsualización al compartir: https://developers.facebook.com/tools/debug/ (WhatsApp usa la misma OG).
-- Enlazar el subdominio desde https://vidamas.uno/ (un link desde el dominio principal acelera la indexación).
+- Vista previa al compartir: https://developers.facebook.com/tools/debug/ → "Scrape again".
+- Enlazar el subdominio desde https://vidamas.uno/.
+
+## Nota
+
+El aviso `protocol options redefined for 0.0.0.0:443` que imprime `nginx -t` viene de
+`ugaldesolis.softwarecubo.com` (declara `listen 443 ssl` sin `http2` mientras los demás sí).
+Es preexistente e inofensivo.

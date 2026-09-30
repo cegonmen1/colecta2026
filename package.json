@@ -7,7 +7,8 @@
   "scripts": {
     "images": "python3 scripts/build-images.py",
     "build": "node scripts/build.mjs",
-    "preview": "node scripts/serve.mjs dist 4173"
+    "preview": "node scripts/serve.mjs dist 4173",
+    "deploy:prod": "bash scripts/deploy.sh"
   },
   "devDependencies": {
     "html-minifier-terser": "^7.2.0"
